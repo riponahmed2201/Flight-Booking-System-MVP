@@ -6,6 +6,7 @@ import * as bcrypt from 'bcryptjs';
 import { User } from '../entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { AuthResponseDto } from './dto/auth-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -15,7 +16,7 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async register(registerDto: RegisterDto): Promise<{ access_token: string }> {
+  async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
     const user = this.userRepository.create({
       ...registerDto,
@@ -23,12 +24,14 @@ export class AuthService {
     });
     await this.userRepository.save(user);
     const payload = { email: user.email, sub: user.id };
+    const access_token = this.jwtService.sign(payload);
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token,
+      user: { id: user.id, email: user.email, name: user.name },
     };
   }
 
-  async login(loginDto: LoginDto): Promise<{ access_token: string }> {
+  async login(loginDto: LoginDto): Promise<AuthResponseDto> {
     const user = await this.userRepository.findOne({ where: { email: loginDto.email } });
     if (!user) {
       throw new Error('Invalid credentials');
@@ -38,8 +41,10 @@ export class AuthService {
       throw new Error('Invalid credentials');
     }
     const payload = { email: user.email, sub: user.id };
+    const access_token = this.jwtService.sign(payload);
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token,
+      user: { id: user.id, email: user.email, name: user.name },
     };
   }
 }
