@@ -1,148 +1,387 @@
-# Mini Booking System Backend
+# Flight Booking System - Backend API
 
-A NestJS-based backend for a mini flight booking system with JWT authentication, PostgreSQL database, and Swagger documentation.
+A production-ready NestJS backend for a flight booking system with JWT authentication, PostgreSQL database, and Swagger documentation.
 
-## Features
+[![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=flat&logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
-- JWT-based authentication (register/login)
-- Flight listing API
-- Booking creation API
-- PostgreSQL database with proper relations
-- Swagger/OpenAPI documentation at `/api/docs`
+---
 
-## Tech Stack
+## 📖 Table of Contents
+
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Installation](#-installation)
+- [API Documentation](#-api-documentation)
+- [Database Schema](#️-database-schema)
+- [Environment Variables](#-environment-variables)
+- [Testing](#-testing)
+- [Screenshots](#-screenshots)
+
+---
+
+## 🚀 Features
+
+- ✅ **JWT Authentication** - Secure register/login with password validation
+- ✅ **Flight Management** - List, search, filter, and sort flights
+- ✅ **Booking System** - Create bookings with transaction support
+- ✅ **PostgreSQL Database** - TypeORM with proper relations
+- ✅ **API Documentation** - Interactive Swagger/OpenAPI
+- ✅ **Security** - Rate limiting, input validation, error handling
+- ✅ **Pagination** - Efficient data loading with metadata
+
+---
+
+## 📋 Tech Stack
 
 - **Backend**: NestJS + TypeScript
-- **Database**: PostgreSQL
+- **Database**: PostgreSQL + TypeORM
 - **Authentication**: JWT
-- **ORM**: TypeORM
+- **Validation**: class-validator + class-transformer
+- **Security**: @nestjs/throttler + Joi
 - **Documentation**: Swagger/OpenAPI
 
-## Installation
+---
 
-1. Clone the repository and navigate to the backend folder.
+## �️ Installation
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+### Prerequisites
+- Node.js v16+
+- PostgreSQL v12+
+- npm or yarn
 
-3. Set up PostgreSQL database and update `.env` file:
-   ```
-   DATABASE_HOST=localhost
-   DATABASE_PORT=5432
-   DATABASE_USERNAME=your_username
-   DATABASE_PASSWORD=your_password
-   DATABASE_NAME=booking_db
-   JWT_SECRET=your-secret-key
-   ```
-
-4. Ensure PostgreSQL is running and the database exists.
-
-## Running the Application
+### Setup Steps
 
 ```bash
-# development
+# 1. Clone repository
+git clone <repository-url>
+cd booking-backend
+
+# 2. Install dependencies
+npm install
+
+# 3. Create PostgreSQL database
+createdb booking_db
+# Or using psql:
+# psql -U postgres
+# CREATE DATABASE booking_db;
+
+# 4. Configure environment variables
+# Create .env file in root directory
+```
+
+### Environment Configuration
+
+Create `.env` file with the following variables:
+
+```env
+NODE_ENV=development
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_USERNAME=postgres
+DATABASE_PASSWORD=your_password
+DATABASE_NAME=booking_db
+JWT_SECRET=your-super-secret-key-minimum-32-characters-long
+JWT_EXPIRATION=1d
+PORT=3000
+```
+
+> ⚠️ **Important**: `JWT_SECRET` must be at least 32 characters long.
+
+### Run Application
+
+```bash
+# Development mode
 npm run start:dev
 
-# production
+# Production mode
+npm run build
 npm run start:prod
 ```
 
-The server will start on port 3000 by default.
+Application will start on: `http://localhost:3000`
 
-## API Documentation
+Swagger documentation: `http://localhost:3000/api/docs`
 
-Access Swagger documentation at: `http://localhost:3000/api/docs`
+---
 
-## API Endpoints
+## 📚 API Documentation
+
+### Base URL
+```
+http://localhost:3000
+```
+
+### Available Endpoints
+
+| Endpoint | Method | Auth Required | Description |
+|----------|--------|---------------|-------------|
+| `/auth/register` | POST | No | Register new user |
+| `/auth/login` | POST | No | Login user |
+| `/flights` | GET | No | Get all flights (paginated) |
+| `/bookings` | POST | Yes | Create new booking |
+
+---
 
 ### Authentication
-- `POST /auth/register` - Register a new user
-- `POST /auth/login` - Login and get JWT token
+
+#### Register User
+```http
+POST /auth/register
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "SecurePass123!",
+  "name": "John Doe"
+}
+```
+
+**Password Requirements:**
+- Minimum 8 characters
+- At least one uppercase letter
+- At least one lowercase letter
+- At least one number or special character
+
+**Response:**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "name": "John Doe"
+  }
+}
+```
+
+#### Login User
+```http
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "SecurePass123!"
+}
+```
+
+---
 
 ### Flights
-- `GET /flights` - Get all available flights
+
+#### Get Flights (with pagination & filters)
+```http
+GET /flights?page=1&limit=10&origin=New York&destination=London&sortBy=price&sortOrder=ASC
+```
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | number | 1 | Page number |
+| `limit` | number | 10 | Items per page (max: 100) |
+| `origin` | string | - | Filter by origin city |
+| `destination` | string | - | Filter by destination city |
+| `departureDate` | string | - | Filter by date (YYYY-MM-DD) |
+| `sortBy` | string | departureTime | Sort by field |
+| `sortOrder` | string | ASC | ASC or DESC |
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "flightNumber": "AA123",
+      "origin": "New York",
+      "destination": "London",
+      "departureTime": "2024-12-25T10:00:00Z",
+      "arrivalTime": "2024-12-25T22:00:00Z",
+      "price": 599.99,
+      "seatsAvailable": 50
+    }
+  ],
+  "meta": {
+    "total": 100,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 10
+  }
+}
+```
+
+---
 
 ### Bookings
-- `POST /bookings` - Create a new booking (requires JWT token)
 
-## Database Schema
+#### Create Booking
+```http
+POST /bookings
+Authorization: Bearer <your_jwt_token>
+Content-Type: application/json
 
-- **users**: id, email, password, name
-- **flights**: id, flightNumber, origin, destination, departureTime, arrivalTime, price, seatsAvailable
-- **bookings**: id, userId, flightId, seatsBooked, bookingDate, status
+{
+  "flightId": 1,
+  "seatsBooked": 2
+}
+```
 
-## Environment Variables
+**Response:**
+```json
+{
+  "id": 1,
+  "flightNumber": "AA123",
+  "origin": "New York",
+  "destination": "London",
+  "departureTime": "2024-12-25T10:00:00Z",
+  "arrivalTime": "2024-12-25T22:00:00Z",
+  "seatsBooked": 2,
+  "totalPrice": 1199.98,
+  "status": "confirmed",
+  "bookingDate": "2024-12-13T03:00:00Z",
+  "userId": 1,
+  "userName": "John Doe"
+}
+```
 
-- `DATABASE_HOST`: PostgreSQL host
-- `DATABASE_PORT`: PostgreSQL port
-- `DATABASE_USERNAME`: Database username
-- `DATABASE_PASSWORD`: Database password
-- `DATABASE_NAME`: Database name
-- `JWT_SECRET`: Secret key for JWT signing
+**Error Responses:**
+- `401 Unauthorized` - Missing or invalid JWT token
+- `404 Not Found` - Flight doesn't exist
+- `400 Bad Request` - Insufficient seats available
 
-## Testing
+---
+
+## 🗄️ Database Schema
+
+### Tables
+
+**users**
+- `id` - Primary Key
+- `email` - Unique, indexed
+- `password` - Hashed with bcrypt
+- `name` - String
+
+**flights**
+- `id` - Primary Key
+- `flightNumber` - String
+- `origin` - String
+- `destination` - String
+- `departureTime` - DateTime
+- `arrivalTime` - DateTime
+- `price` - Decimal
+- `seatsAvailable` - Integer
+
+**bookings**
+- `id` - Primary Key
+- `userId` - Foreign Key → users
+- `flightId` - Foreign Key → flights
+- `seatsBooked` - Integer
+- `bookingDate` - DateTime
+- `status` - String (confirmed, cancelled)
+
+**Relations:**
+- User → Bookings (One-to-Many)
+- Flight → Bookings (One-to-Many)
+
+---
+
+## 📝 Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `NODE_ENV` | No | development | Environment (development/production/test) |
+| `DATABASE_HOST` | Yes | - | PostgreSQL host |
+| `DATABASE_PORT` | No | 5432 | PostgreSQL port |
+| `DATABASE_USERNAME` | Yes | - | Database username |
+| `DATABASE_PASSWORD` | Yes | - | Database password |
+| `DATABASE_NAME` | Yes | - | Database name |
+| `JWT_SECRET` | Yes | - | JWT secret key (min 32 characters) |
+| `JWT_EXPIRATION` | No | 1d | JWT token expiration time |
+| `PORT` | No | 3000 | Application port |
+
+---
+
+## 🧪 Testing
 
 ```bash
-# unit tests
+# Run unit tests
 npm run test
 
-# e2e tests
+# Run e2e tests
 npm run test:e2e
 
-# test coverage
+# Run tests with coverage
 npm run test:cov
 ```
 
-## License
+---
+
+## 📸 Screenshots
+
+### Swagger Documentation
+Access the interactive API documentation at `http://localhost:3000/api/docs`
+
+![Swagger UI](screenshots/swagger-ui.png)
+
+### API Endpoints
+All endpoints are documented with request/response schemas
+
+![API Endpoints](screenshots/api-endpoints.png)
+
+### Authentication Flow
+JWT-based authentication with secure password validation
+
+![Authentication](screenshots/auth-flow.png)
+
+### Error Handling
+Consistent error responses with proper HTTP status codes
+
+![Error Handling](screenshots/error-handling.png)
+
+---
+
+## 📦 Project Structure
+
+```
+src/
+├── auth/                   # Authentication module
+├── bookings/              # Bookings module
+├── flights/               # Flights module
+├── common/                # Shared utilities
+│   ├── dto/              # Pagination DTOs
+│   ├── exceptions/       # Custom exceptions
+│   ├── filters/          # Exception filters
+│   └── guards/           # Auth guards
+├── config/                # Configuration files
+├── entities/              # TypeORM entities
+├── app.module.ts          # Root module
+└── main.ts               # Application entry
+```
+
+---
+
+## 🔒 Security Features
+
+- **Password Validation** - Strong password requirements
+- **Rate Limiting** - Prevents brute force attacks
+- **JWT Authentication** - Secure token-based auth
+- **Input Validation** - Automatic validation and sanitization
+- **Error Handling** - Sanitized error messages
+- **Environment Validation** - Validates configuration on startup
+
+---
+
+## 📄 License
 
 This project is for evaluation purposes only.
-$ npm run test
 
-# e2e tests
-$ npm run test:e2e
+---
 
-# test coverage
-$ npm run test:cov
-```
+## 🤝 Support
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+For questions or issues:
+- Check [Swagger Documentation](http://localhost:3000/api/docs)
+- Review [NestJS Documentation](https://docs.nestjs.com)
+- See [TypeORM Documentation](https://typeorm.io)
